@@ -914,18 +914,6 @@ namespace Behaviac.Design
                 Plugin.InitNodeGroups();
 
                 Plugin.RegisterNodeDesc(_DesignerBaseDll);
-
-                //Plugin.RegisterTypeName("Tag_Vector2", "Vector2");
-                //Plugin.RegisterTypeName("Tag_Vector3", "Vector3");
-                //Plugin.RegisterTypeName("Tag_Vector4", "Vector4");
-                //Plugin.RegisterTypeName("Tag_Float2", "Vector2");
-                //Plugin.RegisterTypeName("Tag_Float3", "Vector3");
-                //Plugin.RegisterTypeName("Tag_Float4", "Vector4");
-                //Plugin.RegisterTypeName("Tag_Quaternion", "Quaternion");
-                //Plugin.RegisterTypeName("Tag_Aabb3", "Aabb3");
-                //Plugin.RegisterTypeName("Tag_Ray3", "Ray3");
-                //Plugin.RegisterTypeName("Tag_Sphere", "Sphere");
-                //Plugin.RegisterTypeName("Angle3F", "Angle3F");
             }
         }
 
@@ -1041,7 +1029,6 @@ namespace Behaviac.Design
                     {
                         bInQuote = true;
                     }
-
                 }
                 else if (!bInQuote && (str[i] == delimiter))
                 {
@@ -1050,7 +1037,6 @@ namespace Behaviac.Design
                         result.Add(item);
                         item = "";
                     }
-
                 }
                 else
                 {
@@ -1681,7 +1667,6 @@ namespace Behaviac.Design
                         Debug.Check(str[pos - 1] == ':');
                         className = str.Substring(0, pos - 1);
                     }
-
                 }
                 else
                 {
@@ -1698,12 +1683,10 @@ namespace Behaviac.Design
                         //e.g. static int Property;
                         propertyType = tokens[1];
                         propertyName = tokens[2];
-
                     }
                     else if (tokens.Length == 1)
                     {
                         propertyName = tokens[0];
-
                     }
                     else
                     {
@@ -1831,6 +1814,8 @@ namespace Behaviac.Design
                 if (Plugin.NamesInNamespace.ContainsKey(typeName))
                 {
                     typeName = Plugin.NamesInNamespace[typeName];
+                    typeName = typeName.Replace("*","");
+                    typeName = typeName.Replace("&", "");
                 }
 
                 foreach (AgentType at in _agentTypes)
@@ -1986,6 +1971,16 @@ namespace Behaviac.Design
                     ms_namesInNamespace["behaviac_EBTStatus"] = "behaviac::EBTStatus";
                 }
 
+                if (!ms_namesInNamespace.ContainsKey("System_Object"))
+                {
+                    ms_namesInNamespace["System_Object"] = "System::Object";
+                }
+
+                if (!ms_namesInNamespace.ContainsKey("Object"))
+                {
+                    ms_namesInNamespace["Object"] = "System::Object";
+                }
+
                 return ms_namesInNamespace;
             }
         }
@@ -2063,7 +2058,7 @@ namespace Behaviac.Design
 
             foreach (Type key in Plugin.TypeHandlers.Keys)
             {
-                if (key != typeof(System.Collections.IList) && !Plugin.IsArrayType(key))
+                if (key != typeof(System.Collections.IList) && !Plugin.IsArrayType(key) && key != typeof(XMLPluginBehaviac.System_Object))
                 {
                     allTypeNames.Add(Plugin.GetNativeTypeName(key.Name, false, true));
                 }
@@ -2092,7 +2087,7 @@ namespace Behaviac.Design
                 Type itemType = type.GetGenericArguments()[0];
                 string itemTypeStr = Plugin.GetNativeTypeName(itemType, bForDisplay);
 
-                //if (!itemTypeStr.EndsWith("*") && Plugin.IsRefType(itemType))
+                //if (!itemTypeStr.Contains("*") && Plugin.IsRefType(itemType))
                 //{
                 //    itemTypeStr += "*";
                 //}
@@ -2102,7 +2097,7 @@ namespace Behaviac.Design
 
             string typeStr = GetNativeTypeName(type.Name, false, bForDisplay);
 
-            //if (!typeStr.EndsWith("*") && Plugin.IsRefType(type))
+            //if (!typeStr.Contains("*") && Plugin.IsRefType(type))
             //{
             //    typeStr += "*";
             //}
@@ -2554,17 +2549,14 @@ namespace Behaviac.Design
                 if (value is VariableDef)
                 {
                     clone = new VariableDef((VariableDef)value);
-
                 }
                 else if (value is RightValueDef)
                 {
                     clone = ((RightValueDef)value).Clone();
-
                 }
                 else if (value is ParInfo)
                 {
                     clone = new ParInfo((ParInfo)value);
-
                 }
                 else
                 {
@@ -2581,7 +2573,6 @@ namespace Behaviac.Design
                             object cloneValue = CloneValue(item);
                             listClone.Add(cloneValue);
                         }
-
                     }
                     else if (Plugin.IsCustomClassType(type))
                     {
@@ -2613,7 +2604,6 @@ namespace Behaviac.Design
                                     }
                                 }
                             }
-
                         }
                         catch
                         {
@@ -2838,7 +2828,6 @@ namespace Behaviac.Design
                                 {
                                     result.Add(new Node.ErrorCheck(node, ErrorCheckLevel.Error, "Par as a parameter of the method."));
                                 }
-
                             }
                             else if (property.PropertyType == typeof(VariableDef))
                             {
@@ -2849,7 +2838,6 @@ namespace Behaviac.Design
                                 {
                                     result.Add(new Node.ErrorCheck(node, ErrorCheckLevel.Error, "Par as a value."));
                                 }
-
                             }
                             else if (property.PropertyType == typeof(RightValueDef))
                             {
@@ -2862,7 +2850,6 @@ namespace Behaviac.Design
                                 }
                             }
                         }
-
                     }
                     catch
                     {
@@ -2893,7 +2880,6 @@ namespace Behaviac.Design
                         CheckPar(childNode, par, ref result);
                     }
                 }
-
             }
             catch (Exception ex)
             {
@@ -2953,7 +2939,6 @@ namespace Behaviac.Design
                 Debug.Check(createMethod != null);
 
                 return createMethod.Invoke(null, new object[0]);
-
             }
             else if (type.IsEnum)
             {
@@ -2965,12 +2950,10 @@ namespace Behaviac.Design
                 }
 
                 return null;
-
             }
             else if (IsCustomClassType(type) || IsArrayType(type))
             {
                 return Activator.CreateInstance(type);
-
             }
             else
             {
@@ -2981,8 +2964,6 @@ namespace Behaviac.Design
 
         public static bool InvokeTypeParser(List<Nodes.Node.ErrorCheck> result, Type type, string parStr, SetValue setter, DefaultObject node, string paramName = null)
         {
-            //Debug.Check(type != null);
-
             if (type == null)
             {
                 return false;
@@ -3186,7 +3167,6 @@ namespace Behaviac.Design
                 if (type == typeof(Agent) || type.IsSubclassOf(typeof(Agent)))
                 {
                     return Activator.CreateInstance(type);
-                    //return null;
                 }
 
                 if (Plugin.IsArrayType(type) || type == typeof(System.Collections.IList))
@@ -3810,7 +3790,6 @@ namespace Behaviac.Design
                         return true;
                     }
                 }
-
             }
             else
             {
@@ -3820,7 +3799,6 @@ namespace Behaviac.Design
                     {
                         return true;
                     }
-
                 }
                 else
                 {

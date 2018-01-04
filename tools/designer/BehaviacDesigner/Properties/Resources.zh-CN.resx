@@ -524,7 +524,7 @@
     <value>这是一棵子树</value>
   </data>
   <data name="AgentErrorInfo" xml:space="preserve">
-    <value>行为树{1}中的{0}类型不是从行为树{3}中的{2}类型继承出来， 请加载另一个行为树文件！</value>
+    <value>行为树{1}根节点中的类型{0}跟行为树{3}根节点中的类型{2}没有继承或同类关系，请加载另一个行为树文件！</value>
   </data>
   <data name="OpenPrefab" xml:space="preserve">
     <value>打开预制行为树</value>
@@ -745,5 +745,11 @@
   </data>
   <data name="ModifyTypeWarning" xml:space="preserve">
     <value>该类型已被使用中，确定继续吗？</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="NullWorkspace" xml:space="preserve">
+    <value>首先需要加载或创建工作区！</value>
   </data>
 </root>

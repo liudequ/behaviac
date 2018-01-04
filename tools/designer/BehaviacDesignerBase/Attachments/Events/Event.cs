@@ -47,7 +47,7 @@ namespace Behaviac.Design.Attachments
         {
             get
             {
-                return "http://www.behaviac.com/language/zh/attachment/#section-1";
+                return "http://www.behaviac.com/attachment/#section-1";
             }
         }
 
@@ -155,7 +155,7 @@ namespace Behaviac.Design.Attachments
                 Behavior b = this.Behavior as Behavior;
                 Debug.Check(b != null);
 
-                b.AgentType.AddPars(b.LocalVars);
+                b.AgentType.ResetPars(b.LocalVars);
 
                 //((Node)_referencedBehavior).WasModified += new WasModifiedEventDelegate(referencedBehavior_WasModified);
                 //_referencedBehavior.WasRenamed += new Behavior.WasRenamedEventDelegate(referencedBehavior_WasRenamed);

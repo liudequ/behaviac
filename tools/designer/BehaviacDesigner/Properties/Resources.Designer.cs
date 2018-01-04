@@ -187,7 +187,7 @@ namespace Behaviac.Design.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} in {1} is not derived from {2} in {3}. Please try another behavior file again!.
+        ///   Looks up a localized string similar to {0} in {1} is not derived from or the same as or does not inherit {2} in {3}. Please try another behavior file again!.
         /// </summary>
         internal static string AgentErrorInfo {
             get {
@@ -648,6 +648,15 @@ namespace Behaviac.Design.Properties {
         internal static string EnumMemberVerifyWarning {
             get {
                 return ResourceManager.GetString("EnumMemberVerifyWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        internal static string Error {
+            get {
+                return ResourceManager.GetString("Error", resourceCulture);
             }
         }
         
@@ -1198,7 +1207,7 @@ namespace Behaviac.Design.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The workspace file will be updated and the meta file will not be used any longer.
         ///You should export all files with the latest designer.
-        ///更多详情请参考：http://www.behaviac.com/language/zh/updatenotes/#36x.
+        ///更多详情请参考：http://www.behaviac.com/updatenotes/#36x.
         /// </summary>
         internal static string MetaWarning {
             get {
@@ -1324,6 +1333,15 @@ namespace Behaviac.Design.Properties {
         internal static string NormalMode {
             get {
                 return ResourceManager.GetString("NormalMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You should create or load a workspace firstly!.
+        /// </summary>
+        internal static string NullWorkspace {
+            get {
+                return ResourceManager.GetString("NullWorkspace", resourceCulture);
             }
         }
         

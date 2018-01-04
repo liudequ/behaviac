@@ -42,7 +42,7 @@ namespace PluginBehaviac.Exporters
         List<BehaviorCreator> _behaviorCreators = new List<BehaviorCreator>();
 
         public ExporterCpp(BehaviorNode node, string outputFolder, string filename, List<string> includedFilenames = null)
-        : base(node, outputFolder, filename, includedFilenames)
+            : base(node, outputFolder, filename, includedFilenames)
         {
             //automatically create an extra level of path
             _outputFolder = Path.Combine(Path.GetFullPath(_outputFolder), "behaviac_generated");
@@ -368,6 +368,7 @@ namespace PluginBehaviac.Exporters
             file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/action.h\"");
             file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/assignment.h\"");
             file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/compute.h\"");
+            file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/end.h\"");
             file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/noop.h\"");
             file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/wait.h\"");
             file.WriteLine("#include \"behaviac/behaviortree/nodes/actions/waitforsignal.h\"");
@@ -617,9 +618,16 @@ namespace PluginBehaviac.Exporters
                         string propName = prop.Name.Replace("::", "_").Replace("[]", "");
                         string nativeType = DataCppExporter.GetBasicGeneratedNativeType(prop.NativeType);
 
-                        if (Plugin.IsRefType(prop.Type) && !nativeType.EndsWith("*"))
+                        if (Plugin.IsRefType(prop.Type))
                         {
-                            nativeType += "*";
+                            if (!nativeType.Contains("*"))
+                            {
+                                nativeType += "*";
+                            }
+                        }
+                        else if (nativeType != "char*" && !Plugin.IsArrayType(prop.Type))
+                        {
+                            nativeType = nativeType.Replace("*", "");
                         }
 
                         file.WriteLine("{0}struct PROPERTY_TYPE_{1} {{ }};", indent, propName);
@@ -668,13 +676,17 @@ namespace PluginBehaviac.Exporters
                             }
 
                             string basicNativeType = DataCppExporter.GetGeneratedNativeType(method.Params[i].NativeType);
+                            if (method.Params[i].IsConst)
+                            {
+                                basicNativeType = "const " + basicNativeType;
+                            }
                             paramStrDef += string.Format("{0} p{1}", basicNativeType, i);
                             paramStr += string.Format("p{0}", i);
                         }
 
                         string methodName = agenType.Name.Replace("::", "_") + "_" + method.BasicName.Replace("::", "_");
                         string nativeReturnType = DataCppExporter.GetGeneratedNativeType(method.NativeReturnType);
-                        if (Plugin.IsRefType(method.ReturnType) && !nativeReturnType.EndsWith("*"))
+                        if (Plugin.IsRefType(method.ReturnType) && !nativeReturnType.Contains("*"))
                         {
                             nativeReturnType += "*";
                         }
@@ -757,7 +769,7 @@ namespace PluginBehaviac.Exporters
             ExportAttachmentClass(file, btClassName, (Node)behavior);
 
             // create the class definition of its children
-            foreach (Node child in((Node)behavior).GetChildNodes())
+            foreach (Node child in ((Node)behavior).GetChildNodes())
             {
                 ExportNodeClass(file, btClassName, agentType, behavior, child);
             }
@@ -813,7 +825,7 @@ namespace PluginBehaviac.Exporters
                 file.WriteLine("\t\t\t\tfsm->SetAgentType(\"{0}\");", agentType);
                 file.WriteLine("#endif");
 
-                foreach (Node child in((Node)behavior).FSMNodes)
+                foreach (Node child in ((Node)behavior).FSMNodes)
                 {
                     ExportNode(file, btClassName, agentType, "fsm", child, 4);
                 }
@@ -823,7 +835,7 @@ namespace PluginBehaviac.Exporters
             }
             else
             {
-                foreach (Node child in((Node)behavior).GetChildNodes())
+                foreach (Node child in ((Node)behavior).GetChildNodes())
                 {
                     ExportNode(file, btClassName, agentType, "pBT", child, 3);
                 }
@@ -1067,23 +1079,23 @@ namespace PluginBehaviac.Exporters
                 string structTypeName = structType.Fullname.Replace("::", "_");
 
                 // class
-                file.WriteLine("\t\t\tclass CInstanceConst_{0} : public CInstanceConstBase<{1}>", structTypeName, structType.Fullname);
-                file.WriteLine("\t\t\t{");
+                file.WriteLine("\tclass CInstanceConst_{0} : public CInstanceConstBase<{1}>", structTypeName, structType.Fullname);
+                file.WriteLine("\t{");
 
                 foreach (PropertyDef prop in structType.Properties)
                 {
-                    file.WriteLine("\t\t\t\tIInstanceMember* _{0};", prop.BasicName);
+                    file.WriteLine("\t\tIInstanceMember* _{0};", prop.BasicName);
                 }
 
                 file.WriteLine();
 
                 // Constructors
-                file.WriteLine("\t\t\tpublic: ");
-                file.WriteLine("\t\t\t\tCInstanceConst_{0}(const char* valueStr) : CInstanceConstBase<{1}>(valueStr)", structTypeName, structType.Fullname);
-                file.WriteLine("\t\t\t\t{");
+                file.WriteLine("\tpublic: ");
+                file.WriteLine("\t\tCInstanceConst_{0}(const char* valueStr) : CInstanceConstBase<{1}>(valueStr)", structTypeName, structType.Fullname);
+                file.WriteLine("\t\t{");
 
-                file.WriteLine("\t\t\t\t\tbehaviac::vector<behaviac::string> paramStrs = behaviac::StringUtils::SplitTokensForStruct(valueStr);");
-                file.WriteLine("\t\t\t\t\tBEHAVIAC_ASSERT(paramStrs.size() == {0});", structType.Properties.Count);
+                file.WriteLine("\t\t\tbehaviac::vector<behaviac::string> paramStrs = behaviac::StringUtils::SplitTokensForStruct(valueStr);");
+                file.WriteLine("\t\t\tBEHAVIAC_ASSERT(paramStrs.size() == {0});", structType.Properties.Count);
                 file.WriteLine();
 
                 for (int i = 0; i < structType.Properties.Count; ++i)
@@ -1096,33 +1108,33 @@ namespace PluginBehaviac.Exporters
                         propType = propType.Substring(0, propType.Length - 1);
                     }
 
-                    file.WriteLine("\t\t\t\t\t_{0} = AgentMeta::TParseProperty<{1} >(paramStrs[{2}].c_str());", prop.BasicName, propType, i);
+                    file.WriteLine("\t\t\t_{0} = AgentMeta::TParseProperty<{1} >(paramStrs[{2}].c_str());", prop.BasicName, propType, i);
                 }
 
-                file.WriteLine("\t\t\t\t}");
+                file.WriteLine("\t\t}");
                 file.WriteLine();
 
                 // Destructor
-                file.WriteLine("\t\t\t\t~CInstanceConst_{0}()", structTypeName);
-                file.WriteLine("\t\t\t\t{");
+                file.WriteLine("\t\t~CInstanceConst_{0}()", structTypeName);
+                file.WriteLine("\t\t{");
 
                 foreach (PropertyDef prop in structType.Properties)
                 {
-                    file.WriteLine("\t\t\t\t\tBEHAVIAC_DELETE _{0};", prop.BasicName);
+                    file.WriteLine("\t\t\tBEHAVIAC_DELETE _{0};", prop.BasicName);
                 }
 
-                file.WriteLine("\t\t\t\t}");
+                file.WriteLine("\t\t}");
                 file.WriteLine();
 
                 // Run()
-                file.WriteLine("\t\t\t\tvirtual void run(Agent* self)");
-                file.WriteLine("\t\t\t\t{");
+                file.WriteLine("\t\tvirtual void run(Agent* self)");
+                file.WriteLine("\t\t{");
 
                 if (structType.Properties.Count > 0)
                 {
                     foreach (PropertyDef prop in structType.Properties)
                     {
-                        file.WriteLine("\t\t\t\t\tBEHAVIAC_ASSERT(_{0} != NULL);", prop.BasicName);
+                        file.WriteLine("\t\t\tBEHAVIAC_ASSERT(_{0} != NULL);", prop.BasicName);
                     }
 
                     file.WriteLine();
@@ -1146,17 +1158,17 @@ namespace PluginBehaviac.Exporters
 
                     if (tempPropType == "char*")
                     {
-                        file.WriteLine("\t\t\t\t\t_value.{0} = ({1})_{0}->GetValue(self, behaviac::Meta::IsVector<{1} >::Result, behaviac::GetClassTypeNumberId<{1} >());", prop.BasicName, tempPropType);
+                        file.WriteLine("\t\t\t_value.{0} = ({1})_{0}->GetValue(self, behaviac::Meta::IsVector<{1} >::Result, behaviac::GetClassTypeNumberId<{1} >());", prop.BasicName, tempPropType);
                     }
                     else
                     {
-                        file.WriteLine("\t\t\t\t\t_value.{0} = {1}({2}*)_{0}->GetValue(self, behaviac::Meta::IsVector<{2} >::Result, behaviac::GetClassTypeNumberId<{2} >());", prop.BasicName, pointStr, tempPropType);
+                        file.WriteLine("\t\t\t_value.{0} = {1}({2}*)_{0}->GetValue(self, behaviac::Meta::IsVector<{2} >::Result, behaviac::GetClassTypeNumberId<{2} >());", prop.BasicName, pointStr, tempPropType);
                     }
                 }
 
-                file.WriteLine("\t\t\t\t}"); // Run()
+                file.WriteLine("\t\t}"); // Run()
 
-                file.WriteLine("\t\t\t};"); // end of class
+                file.WriteLine("\t};"); // end of class
                 file.WriteLine();
             }
 
@@ -1198,11 +1210,16 @@ namespace PluginBehaviac.Exporters
                             }
 
                             string methodReturnType = DataCppExporter.GetGeneratedNativeType(method.NativeReturnType);
+                            if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.Contains("*"))
+                            {
+                                methodReturnType += "*";
+                            }
+
                             string baseClass = (methodReturnType == "void") ? "CAgentMethodVoidBase" : string.Format("CAgentMethodBase<{0}>", methodReturnType);
 
                             // class
-                            file.WriteLine("\t\t\tclass CMethod_{0} : public {1}", methodFullname, baseClass);
-                            file.WriteLine("\t\t\t{");
+                            file.WriteLine("\tclass CMethod_{0} : public {1}", methodFullname, baseClass);
+                            file.WriteLine("\t{");
                             string initVarsList = "";
                             bool isFirstTime = true;
 
@@ -1210,7 +1227,7 @@ namespace PluginBehaviac.Exporters
                             {
                                 if (Plugin.IsRefType(param.Type))
                                 {
-                                    file.WriteLine("\t\t\t\tIInstanceMember* _{0};", param.Name);
+                                    file.WriteLine("\t\tIInstanceMember* _{0};", param.Name);
 
                                     if (isFirstTime)
                                     {
@@ -1225,7 +1242,7 @@ namespace PluginBehaviac.Exporters
                                 else
                                 {
                                     string paramType = DataCppExporter.GetGeneratedNativeType(param.NativeType);
-                                    file.WriteLine("\t\t\t\tIInstanceMember* _{0};", param.Name);
+                                    file.WriteLine("\t\tIInstanceMember* _{0};", param.Name);
 
                                     if (isFirstTime)
                                     {
@@ -1245,51 +1262,51 @@ namespace PluginBehaviac.Exporters
                             }
 
                             // Constructors
-                            file.WriteLine("\t\t\tpublic: ");
-                            file.WriteLine("\t\t\t\tCMethod_{0}() : {1}", methodFullname, initVarsList);
-                            file.WriteLine("\t\t\t\t{");
-                            file.WriteLine("\t\t\t\t}");
+                            file.WriteLine("\tpublic: ");
+                            file.WriteLine("\t\tCMethod_{0}() : {1}", methodFullname, initVarsList);
+                            file.WriteLine("\t\t{");
+                            file.WriteLine("\t\t}");
                             file.WriteLine();
 
-                            file.WriteLine("\t\t\t\tCMethod_{0}(CMethod_{0} &rhs) : {1}(rhs) , {2}", methodFullname, baseClass, initVarsList);
-                            file.WriteLine("\t\t\t\t{");
-                            file.WriteLine("\t\t\t\t}");
+                            file.WriteLine("\t\tCMethod_{0}(CMethod_{0} &rhs) : {1}(rhs) , {2}", methodFullname, baseClass, initVarsList);
+                            file.WriteLine("\t\t{");
+                            file.WriteLine("\t\t}");
                             file.WriteLine();
 
                             // Destructor
-                            file.WriteLine("\t\t\t\t~CMethod_{0}()", methodFullname);
-                            file.WriteLine("\t\t\t\t{");
+                            file.WriteLine("\t\t~CMethod_{0}()", methodFullname);
+                            file.WriteLine("\t\t{");
 
                             foreach (MethodDef.Param param in method.Params)
                             {
                                 if (Plugin.IsRefType(param.Type))
                                 {
-                                    file.WriteLine("\t\t\t\t\tBEHAVIAC_DELETE _{0};", param.Name);
+                                    file.WriteLine("\t\t\tBEHAVIAC_DELETE _{0};", param.Name);
                                 }
                                 else
                                 {
                                     string paramType = DataCppExporter.GetGeneratedNativeType(param.NativeType);
-                                    file.WriteLine("\t\t\t\t\tBEHAVIAC_DELETE _{0};", param.Name);
+                                    file.WriteLine("\t\t\tBEHAVIAC_DELETE _{0};", param.Name);
                                 }
                             }
 
-                            file.WriteLine("\t\t\t\t}");
+                            file.WriteLine("\t\t}");
                             file.WriteLine();
 
                             // Clone()
-                            file.WriteLine("\t\t\t\tvirtual IInstanceMember* clone()");
-                            file.WriteLine("\t\t\t\t{");
-                            file.WriteLine("\t\t\t\t\treturn BEHAVIAC_NEW CMethod_{0}(*this);", methodFullname);
-                            file.WriteLine("\t\t\t\t}"); // Clone()
+                            file.WriteLine("\t\tvirtual IInstanceMember* clone()");
+                            file.WriteLine("\t\t{");
+                            file.WriteLine("\t\t\treturn BEHAVIAC_NEW CMethod_{0}(*this);", methodFullname);
+                            file.WriteLine("\t\t}"); // Clone()
                             file.WriteLine();
 
                             // Load()
-                            file.WriteLine("\t\t\t\tvirtual void load(const char* instance, behaviac::vector<behaviac::string>& paramStrs)");
-                            file.WriteLine("\t\t\t\t{");
+                            file.WriteLine("\t\tvirtual void load(const char* instance, behaviac::vector<behaviac::string>& paramStrs)");
+                            file.WriteLine("\t\t{");
 
-                            file.WriteLine("\t\t\t\t\tBEHAVIAC_ASSERT(paramStrs.size() == {0});", method.Params.Count);
+                            file.WriteLine("\t\t\tBEHAVIAC_ASSERT(paramStrs.size() == {0});", method.Params.Count);
                             file.WriteLine();
-                            file.WriteLine("\t\t\t\t\tbehaviac::StringUtils::StringCopySafe(kInstanceNameMax, _instance, instance);");
+                            file.WriteLine("\t\t\tbehaviac::StringUtils::StringCopySafe(kInstanceNameMax, _instance, instance);");
 
                             for (int i = 0; i < method.Params.Count; ++i)
                             {
@@ -1307,33 +1324,33 @@ namespace PluginBehaviac.Exporters
 
                                 if (IsStructType(param))
                                 {
-                                    file.WriteLine("\t\t\t\t\tif (behaviac::StringUtils::StartsWith(paramStrs[{0}].c_str(), \"{{\"))", i);
-					                file.WriteLine("\t\t\t\t\t{");
-                                    file.WriteLine("\t\t\t\t\t\t_{0} = BEHAVIAC_NEW CInstanceConst_{1}(paramStrs[{2}].c_str());", param.Name, tmpParamType, i);
-					                file.WriteLine("\t\t\t\t\t}");
-					                file.WriteLine("\t\t\t\t\telse");
-					                file.WriteLine("\t\t\t\t\t{");
-                                    file.WriteLine("\t\t\t\t\t\t_{0} = AgentMeta::TParseProperty<{1} >(paramStrs[{2}].c_str());", param.Name, paramType, i);
-					                file.WriteLine("\t\t\t\t\t}");
+                                    file.WriteLine("\t\t\tif (behaviac::StringUtils::StartsWith(paramStrs[{0}].c_str(), \"{{\"))", i);
+                                    file.WriteLine("\t\t\t{");
+                                    file.WriteLine("\t\t\t\t_{0} = BEHAVIAC_NEW CInstanceConst_{1}(paramStrs[{2}].c_str());", param.Name, tmpParamType, i);
+                                    file.WriteLine("\t\t\t}");
+                                    file.WriteLine("\t\t\telse");
+                                    file.WriteLine("\t\t\t{");
+                                    file.WriteLine("\t\t\t\t_{0} = AgentMeta::TParseProperty<{1} >(paramStrs[{2}].c_str());", param.Name, paramType, i);
+                                    file.WriteLine("\t\t\t}");
                                 }
                                 else
                                 {
-                                    file.WriteLine("\t\t\t\t\t_{0} = AgentMeta::TParseProperty<{1} >(paramStrs[{2}].c_str());", param.Name, paramType, i);
+                                    file.WriteLine("\t\t\t_{0} = AgentMeta::TParseProperty<{1} >(paramStrs[{2}].c_str());", param.Name, paramType, i);
                                 }
                             }
 
-                            file.WriteLine("\t\t\t\t}"); // Load()
+                            file.WriteLine("\t\t}"); // Load()
                             file.WriteLine();
 
                             // Run()
-                            file.WriteLine("\t\t\t\tvirtual void run(Agent* self)");
-                            file.WriteLine("\t\t\t\t{");
+                            file.WriteLine("\t\tvirtual void run(Agent* self)");
+                            file.WriteLine("\t\t{");
 
                             if (method.Params.Count > 0)
                             {
                                 foreach (MethodDef.Param param in method.Params)
                                 {
-                                    file.WriteLine("\t\t\t\t\tBEHAVIAC_ASSERT(_{0} != NULL);", param.Name);
+                                    file.WriteLine("\t\t\tBEHAVIAC_ASSERT(_{0} != NULL);", param.Name);
                                 }
 
                                 file.WriteLine();
@@ -1356,6 +1373,10 @@ namespace PluginBehaviac.Exporters
                                 }
 
                                 string paramType = DataCppExporter.GetGeneratedNativeType(param.NativeType);
+                                if (param.IsConst)
+                                {
+                                    paramType = "const " + paramType;
+                                }
                                 string tempParamType = paramType;
                                 string tempexecuteMethodParamType = tempParamType;
 
@@ -1369,16 +1390,16 @@ namespace PluginBehaviac.Exporters
                                     tempParamType = paramType.Substring(0, paramType.Length - 1);
                                 }
 
-                                string formatStr = "\t\t\t\t\t{0}& pValue_{1} = *({0}*)_{1}->GetValue(self, behaviac::Meta::IsVector<{0} >::Result, behaviac::GetClassTypeNumberId<{0} >());";
+                                string formatStr = "\t\t\t{0}& pValue_{1} = *({0}*)_{1}->GetValue(self, behaviac::Meta::IsVector<{0} >::Result, behaviac::GetClassTypeNumberId<{0} >());";
 
                                 if (tempParamType == "char*")
                                 {
-                                    formatStr = "\t\t\t\t\t{0} pValue_{1} = ({0})_{1}->GetValue(self, behaviac::Meta::IsVector<{0} >::Result, behaviac::GetClassTypeNumberId<{0} >());";
+                                    formatStr = "\t\t\t{0} pValue_{1} = ({0})_{1}->GetValue(self, behaviac::Meta::IsVector<{0} >::Result, behaviac::GetClassTypeNumberId<{0} >());";
                                 }
 
                                 if (IsStructType(param))
                                 {
-                                    file.WriteLine("\t\t\t\t\t_{0}->run(self);", param.Name);
+                                    file.WriteLine("\t\t\t_{0}->run(self);", param.Name);
                                 }
 
                                 if (method.IsPublic)
@@ -1400,7 +1421,7 @@ namespace PluginBehaviac.Exporters
 
                             if (!method.IsStatic)
                             {
-                                file.WriteLine("\t\t\t\t\tself = Agent::GetParentAgent(self, _instance);");
+                                file.WriteLine("\t\t\tself = Agent::GetParentAgent(self, _instance);");
                                 file.WriteLine();
                             }
 
@@ -1410,11 +1431,11 @@ namespace PluginBehaviac.Exporters
                                 {
                                     if (method.IsStatic)
                                     {
-                                        file.WriteLine("\t\t\t\t\t{0}::{1}({2});", agentTypeName, method.BasicName, paramValues);
+                                        file.WriteLine("\t\t\t{0}::{1}({2});", agentTypeName, method.BasicName, paramValues);
                                     }
                                     else
                                     {
-                                        file.WriteLine("\t\t\t\t\t(({0}*)self)->{1}({2});", agentTypeName, method.BasicName, paramValues);
+                                        file.WriteLine("\t\t\t(({0}*)self)->{1}({2});", agentTypeName, method.BasicName, paramValues);
                                     }
                                 }
                                 else
@@ -1430,7 +1451,7 @@ namespace PluginBehaviac.Exporters
                                         methodType = methodReturnType;
                                     }
 
-                                    string retStr = string.Format("\t\t\t\t\t(({0}*)self)->_Execute_Method_<{1}METHOD_TYPE_{2}, {3}{4} >({5});", method.ClassName, getNamespace(method.ClassName), method.Name.Replace("::", "_"), methodType, allParamTypes, executeMethodParamValues);
+                                    string retStr = string.Format("\t\t\t(({0}*)self)->_Execute_Method_<{1}METHOD_TYPE_{2}, {3}{4} >({5});", method.ClassName, getNamespace(method.ClassName), method.Name.Replace("::", "_"), methodType, allParamTypes, executeMethodParamValues);
                                     file.WriteLine(retStr);
                                 }
                             }
@@ -1440,11 +1461,11 @@ namespace PluginBehaviac.Exporters
                                 {
                                     if (method.IsStatic)
                                     {
-                                        file.WriteLine("\t\t\t\t\t_returnValue->value = {0}::{1}({2});", agentTypeName, method.BasicName, paramValues);
+                                        file.WriteLine("\t\t\t_returnValue->value = {0}::{1}({2});", agentTypeName, method.BasicName, paramValues);
                                     }
                                     else
                                     {
-                                        file.WriteLine("\t\t\t\t\t_returnValue->value = (({0}*)self)->{1}({2});", agentTypeName, method.BasicName, paramValues);
+                                        file.WriteLine("\t\t\t_returnValue->value = (({0}*)self)->{1}({2});", agentTypeName, method.BasicName, paramValues);
                                     }
                                 }
                                 else
@@ -1461,14 +1482,14 @@ namespace PluginBehaviac.Exporters
                                         methodType = methodReturnType;
                                     }
 
-                                    string retStr = string.Format("\t\t\t\t\t_returnValue->value = (({0}*)self)->_Execute_Method_<{1}METHOD_TYPE_{2}, {3}{4} >({5});", method.ClassName, getNamespace(method.ClassName), method.Name.Replace("::", "_"), methodType, allParamTypes, executeMethodParamValues);
+                                    string retStr = string.Format("\t\t\t_returnValue->value = (({0}*)self)->_Execute_Method_<{1}METHOD_TYPE_{2}, {3}{4} >({5});", method.ClassName, getNamespace(method.ClassName), method.Name.Replace("::", "_"), methodType, allParamTypes, executeMethodParamValues);
                                     file.WriteLine(retStr);
                                 }
                             }
 
-                            file.WriteLine("\t\t\t\t}"); // Run()
+                            file.WriteLine("\t\t}"); // Run()
 
-                            file.WriteLine("\t\t\t};"); // end of class
+                            file.WriteLine("\t};"); // end of class
                             file.WriteLine();
                         }
                     }
@@ -1504,15 +1525,24 @@ namespace PluginBehaviac.Exporters
 
                         if (Plugin.IsRefType(prop.Type))
                         {
-                            if (!prop.IsArrayElement && !propFullType.EndsWith("*"))
+                            if (!prop.IsArrayElement && !propFullType.Contains("*"))
                             {
                                 propFullType += "*";
                             }
 
-                            if (!propType.EndsWith("*"))
+                            if (!propType.Contains("*"))
                             {
                                 propType += "*";
                             }
+                        }
+                        else if (propType != "char*" && !Plugin.IsArrayType(prop.Type))
+                        {
+                            if (!prop.IsArrayElement)
+                            {
+                                propFullType = propFullType.Replace("*", "");
+                            }
+
+                            propType = propType.Replace("*", "");
                         }
 
                         if (prop.IsArrayElement)
@@ -1564,7 +1594,7 @@ namespace PluginBehaviac.Exporters
 
                                     if (String.Compare(prop.NativeItemType, "bool", true) == 0)
                                     {
-                                        str_getter = string.Format("\n\tinline const void* Get_{1}(int index)\n\t{{\n#if _MSC_VER\n\t\treturn {2}._Getptr();\n#else\n\t\tstatic ThreadBool buffer;\n\t\tbool b = {2};\n\t\tbuffer.set(b);\n\t\treturn buffer.value();\n#endif\n\t}}", propType, propName, getValue);
+                                        str_getter = string.Format("\n\tinline const void* Get_{0}(int index)\n\t{{\n#if _MSC_VER\n\t\treturn {1}._Getptr();\n#else\n\t\tstatic ThreadBool buffer;\n\t\tbool b = {1};\n\t\tbuffer.set(b);\n\t\treturn buffer.value();\n#endif\n\t}}", propName, getValue);
                                     }
                                     else
                                     {
@@ -1618,10 +1648,10 @@ namespace PluginBehaviac.Exporters
 
                                 if (prop.IsArrayElement)
                                 {
-                                    if (prop.IsProperty)
+                                    if (prop.IsPar)
                                     {
-                                        str_setter = string.Format("\n\tinline void Set_{0}(Agent* self, {1} value, int index) {{ self->SetVariable(\"{2}\",{3}u,value); }};", propName, propType, propBasicName, CRC32.CalcCRC(propBasicName));
-                                        str_getter = string.Format("\n\tinline const void* Get_{1}(Agent* self, int index ){{ return &self->GetVariable<{0}>({2}u); }};", propType, propName, CRC32.CalcCRC(propBasicName));
+                                        //str_setter = string.Format("\n\tinline void Set_{0}(Agent* self, {1} value, int index) {{ self->SetVariable(\"{2}\",{3}u,value); }};", propName, propType, propBasicName, CRC32.CalcCRC(propBasicName));
+                                        //str_getter = string.Format("\n\tinline const void* Get_{1}(Agent* self, int index ){{ return &self->GetVariable<{0}>({2}u); }};", propType, propName, CRC32.CalcCRC(propBasicName));
                                     }
                                     else
                                     {
@@ -1639,10 +1669,10 @@ namespace PluginBehaviac.Exporters
                                 }
                                 else
                                 {
-                                    if (prop.IsProperty)
+                                    if (prop.IsPar)
                                     {
-                                        str_setter = string.Format("\n\tinline void Set_{0}(Agent* self, {1} value) {{ self->SetVariable(\"{2}\",{3}u,value); }};", propName, propType, prop.BasicName, CRC32.CalcCRC(propBasicName));
-                                        str_getter = string.Format("\n\tinline const void* Get_{1}(Agent* self){{ return &self->GetVariable<{0}>({2}u); }};", propType, propName, CRC32.CalcCRC(propBasicName));
+                                        //str_setter = string.Format("\n\tinline void Set_{0}(Agent* self, {1} value) {{ self->SetVariable(\"{2}\",{3}u,value); }};", propName, propType, prop.BasicName, CRC32.CalcCRC(propBasicName));
+                                        //str_getter = string.Format("\n\tinline const void* Get_{1}(Agent* self){{ return &self->GetVariable<{0}>({2}u); }};", propType, propName, CRC32.CalcCRC(propBasicName));
                                     }
                                     else
                                     {
@@ -1720,7 +1750,7 @@ namespace PluginBehaviac.Exporters
                     }
 
                     string methodReturnType = DataCppExporter.GetGeneratedNativeType(method.NativeReturnType);
-                    if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.EndsWith("*"))
+                    if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.Contains("*"))
                     {
                         methodReturnType += "*";
                     }
@@ -2050,7 +2080,9 @@ namespace PluginBehaviac.Exporters
                                 allParams += ", ";
                             }
 
-                            allParams += DataCppExporter.GetGeneratedNativeType(param.NativeType) + " " + param.Name;
+                            string constStr = param.IsConst ? "const " : "";
+
+                            allParams += constStr + DataCppExporter.GetGeneratedNativeType(param.NativeType) + " " + param.Name;
                         }
 
                         file.WriteLine("{0}\t{1} {2}{3} {4}({5});", indent, publicStr, staticStr, DataCppExporter.GetGeneratedNativeType(method.ReturnType), method.BasicName, allParams);
@@ -2234,13 +2266,7 @@ namespace PluginBehaviac.Exporters
                     {
                         if (!prop.IsStatic && (prop.IsCustomized || !agent.IsImplemented) && !prop.IsInherited && !prop.IsPar && !prop.IsArrayElement)
                         {
-                            string propType = DataCppExporter.GetGeneratedNativeType(prop.Type);
-                            string defaultValue = DataCppExporter.GetGeneratedPropertyDefaultValue(prop, propType);
-
-                            if (defaultValue != null)
-                            {
-                                file.WriteLine("{0}\t{1} = {2};", indent, prop.BasicName, defaultValue);
-                            }
+                            DataCppExporter.GeneratedPropertyDefaultValue(file, indent + "\t", prop);
                         }
                     }
 
@@ -2274,7 +2300,9 @@ namespace PluginBehaviac.Exporters
                                     allParams += ", ";
                                 }
 
-                                allParams += DataCppExporter.GetGeneratedNativeType(param.NativeType) + " " + param.Name;
+                                string constStr = param.IsConst ? "const " : "";
+
+                                allParams += constStr + DataCppExporter.GetGeneratedNativeType(param.NativeType) + " " + param.Name;
                             }
 
                             string returnValue = DataCppExporter.GetGeneratedDefaultValue(method.ReturnType, method.NativeReturnType);
@@ -2283,7 +2311,7 @@ namespace PluginBehaviac.Exporters
                             method.OldName = null;
 
                             string methodReturnType = DataCppExporter.GetGeneratedNativeType(method.NativeReturnType);
-                            if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.EndsWith("*"))
+                            if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.Contains("*"))
                             {
                                 methodReturnType += "*";
                             }
@@ -2799,6 +2827,8 @@ namespace PluginBehaviac.Exporters
                 file.WriteLine("namespace behaviac");
                 file.WriteLine("{");
 
+                PreExportMeta(file);
+
                 file.WriteLine("\tclass BehaviorLoaderImplement : BehaviorLoader");
                 file.WriteLine("\t{");
 
@@ -2944,8 +2974,6 @@ namespace PluginBehaviac.Exporters
 
         private void ExportMembers(StringWriter file)
         {
-            PreExportMeta(file);
-
             file.WriteLine("\t\t\tAgentMeta::SetTotalSignature({0}u);", CRC32.CalcCRC(Plugin.Signature));
             file.WriteLine();
             file.WriteLine("\t\t\tAgentMeta* meta = NULL;");
@@ -2971,9 +2999,16 @@ namespace PluginBehaviac.Exporters
                 {
                     string propType = DataCppExporter.GetGeneratedNativeType(prop.NativeItemType);
 
-                    if (Plugin.IsRefType(prop.Type) && !propType.EndsWith("*"))
+                    if (Plugin.IsRefType(prop.Type))
                     {
-                        propType += "*";
+                        if (!propType.Contains("*"))
+                        {
+                            propType += "*";
+                        }
+                    }
+                    else if (propType != "char*" && !Plugin.IsArrayType(prop.Type))
+                    {
+                        propType = propType.Replace("*", "");
                     }
 
                     string propName = prop.Name.Replace("::", "_").Replace("[]", "");
@@ -3012,9 +3047,16 @@ namespace PluginBehaviac.Exporters
                         string propItemName = prop.BasicName;
                         string propName = prop.Name.Replace("::", "_").Replace("[]", "");
 
-                        if (Plugin.IsRefType(prop.Type) && !propType.EndsWith("*"))
+                        if (Plugin.IsRefType(prop.Type))
                         {
-                            propType += "*";
+                            if (!propType.Contains("*"))
+                            {
+                                propType += "*";
+                            }
+                        }
+                        else if (propType != "char*" && !Plugin.IsArrayType(prop.Type))
+                        {
+                            propType = propType.Replace("*", "");
                         }
 
                         if (prop.IsArrayElement)
@@ -3139,7 +3181,7 @@ namespace PluginBehaviac.Exporters
                     }
 
                     string methodReturnType = DataCppExporter.GetGeneratedNativeType(method.NativeReturnType);
-                    if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.EndsWith("*"))
+                    if (Plugin.IsRefType(method.ReturnType) && !methodReturnType.Contains("*"))
                     {
                         methodReturnType += "*";
                     }

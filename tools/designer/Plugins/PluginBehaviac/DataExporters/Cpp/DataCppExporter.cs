@@ -35,7 +35,7 @@ namespace PluginBehaviac.DataExporters
         {
             string typeName = Plugin.GetNativeTypeName(type);
 
-            if (!typeName.EndsWith("*") && Plugin.IsRefType(type))
+            if (!typeName.Contains("*") && Plugin.IsRefType(type))
             {
                 typeName += "*";
             }
@@ -102,7 +102,7 @@ namespace PluginBehaviac.DataExporters
 
         public static string GetGeneratedNativeType(Type type, string nativeTypeName)
         {
-            if (!nativeTypeName.EndsWith("*"))
+            if (!nativeTypeName.Contains("*"))
             {
                 if (Plugin.IsRefType(type))
                 {
@@ -161,6 +161,18 @@ namespace PluginBehaviac.DataExporters
             {
                 value = "(char)0";
             }
+            else if (type == typeof(float))
+            {
+                if (value == "0")
+                {
+                    value = "0.0";
+                }
+
+                if (!string.IsNullOrEmpty(value) && !value.ToLowerInvariant().EndsWith("f"))
+                {
+                    value += "f";
+                }
+            }
             else if (Plugin.IsStringType(type))
             {
                 if (typename.EndsWith("char*"))
@@ -188,7 +200,7 @@ namespace PluginBehaviac.DataExporters
             }
             else if (Plugin.IsCustomClassType(type))
             {
-                if (Plugin.IsRefType(type) || typename.EndsWith("*"))
+                if (Plugin.IsRefType(type) || typename.Contains("*"))
                 {
                     value = "NULL";
                 }
@@ -204,6 +216,35 @@ namespace PluginBehaviac.DataExporters
         public static string GetGeneratedPropertyDefaultValue(PropertyDef prop, string typename)
         {
             return (prop != null) ? GetGeneratedDefaultValue(prop.Type, typename, prop.DefaultValue) : null;
+        }
+
+        public static void GeneratedPropertyDefaultValue(StringWriter file, string indent, PropertyDef prop)
+        {
+            string propType = GetGeneratedNativeType(prop.Type);
+            string defaultValue = GetGeneratedDefaultValue(prop.Type, propType, prop.DefaultValue);
+
+            if (defaultValue != null)
+            {
+                file.WriteLine("{0}{1} = {2};", indent, prop.BasicName, defaultValue);
+            }
+            else if (!string.IsNullOrEmpty(prop.DefaultValue) && Plugin.IsArrayType(prop.Type))
+            {
+                int index = prop.DefaultValue.IndexOf(":");
+                if (index > 0)
+                {
+                    Type itemType = prop.Type.GetGenericArguments()[0];
+                    if (!Plugin.IsArrayType(itemType) && !Plugin.IsCustomClassType(itemType))
+                    {
+                        string itemTypename = GetGeneratedNativeType(itemType);
+                        string[] items = prop.DefaultValue.Substring(index + 1).Split('|');
+                        for (int i = 0; i < items.Length; ++i)
+                        {
+                            string defaultItemValue = GetGeneratedDefaultValue(itemType, itemTypename, items[i]);
+                            file.WriteLine("{0}{1}.push_back({2});", indent, prop.BasicName, defaultItemValue);
+                        }
+                    }
+                }
+            }
         }
 
         public static string GetPropertyBasicName(Behaviac.Design.PropertyDef property, MethodDef.Param arrayIndexElement)
@@ -233,7 +274,7 @@ namespace PluginBehaviac.DataExporters
         public static bool IsPtr(string typeName)
         {
             typeName = DataCppExporter.GetBasicGeneratedNativeType(typeName);
-            return (typeName.EndsWith("*") && typeName != "char*" && typeName != "char *");
+            return (typeName.Contains("*") && typeName != "char*" && typeName != "char *");
         }
 
         public static bool IsAgentPtr(string typeName)
@@ -325,7 +366,7 @@ namespace PluginBehaviac.DataExporters
 
                     if (!string.IsNullOrEmpty(typename))
                     {
-                        if (typename.EndsWith("*"))
+                        if (typename.Contains("*"))
                         {
                             stream.WriteLine("{0}{1} {2} = NULL;", indent, DataCppExporter.GetBasicGeneratedNativeType(typename), var);
                         }

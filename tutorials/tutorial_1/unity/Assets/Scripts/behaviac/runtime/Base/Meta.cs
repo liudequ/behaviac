@@ -336,8 +336,17 @@ namespace behaviac
             }
         }
 
+        public static string GetTypeName(string typeName)
+        {
+            typeName = typeName.Replace("*", "");
+            //typeName = typeName.Replace("&lt;", "<");
+            //typeName = typeName.Replace("&gt;", ">");
+            return typeName;
+        }
+
         public static ICustomizedProperty CreateProperty(string typeName, uint propId, string propName, string valueStr)
         {
+            typeName = GetTypeName(typeName);
             if (_Creators.ContainsKey(typeName))
             {
                 TypeCreator creator = _Creators[typeName];
@@ -350,6 +359,7 @@ namespace behaviac
 
         public static ICustomizedProperty CreateArrayItemProperty(string typeName, uint parentId, string parentName)
         {
+            typeName = GetTypeName(typeName);
             if (_Creators.ContainsKey(typeName))
             {
                 TypeCreator creator = _Creators[typeName];
@@ -362,6 +372,7 @@ namespace behaviac
 
         public static IInstanceMember CreateInstanceProperty(string typeName, string instance, IInstanceMember indexMember, uint varId)
         {
+            typeName = GetTypeName(typeName);
             if (_Creators.ContainsKey(typeName))
             {
                 TypeCreator creator = _Creators[typeName];
@@ -374,6 +385,7 @@ namespace behaviac
 
         public static IInstanceMember CreateInstanceConst(string typeName, string valueStr)
         {
+            typeName = GetTypeName(typeName);
             if (_Creators.ContainsKey(typeName))
             {
                 TypeCreator creator = _Creators[typeName];
@@ -386,6 +398,7 @@ namespace behaviac
 
         public static ICustomizedProperty CreateCustomizedProperty(string typeName, uint id, string name, string valueStr)
         {
+            typeName = GetTypeName(typeName);
             if (_Creators.ContainsKey(typeName))
             {
                 TypeCreator creator = _Creators[typeName];
@@ -398,6 +411,7 @@ namespace behaviac
 
         public static ICustomizedProperty CreateCustomizedArrayItemProperty(string typeName, uint id, string name)
         {
+            typeName = GetTypeName(typeName);
             if (_Creators.ContainsKey(typeName))
             {
                 TypeCreator creator = _Creators[typeName];
@@ -729,11 +743,14 @@ namespace behaviac
                     uint propId = Utils.MakeVariableId(propName + arrayItem);
 
                     // property
-                    IProperty p = meta.GetProperty(propId);
-
-                    if (p != null)
+                    if (meta != null)
                     {
-                        return p.CreateInstance(instantceName, indexMember);
+                        IProperty p = meta.GetProperty(propId);
+
+                        if (p != null)
+                        {
+                            return p.CreateInstance(instantceName, indexMember);
+                        }
                     }
 
                     // local var

@@ -29,6 +29,14 @@ namespace PluginBehaviac.Nodes
         {
         }
 
+        public override string DocLink
+        {
+            get
+            {
+                return "http://www.behaviac.com/selectormonitor/";
+            }
+        }
+
         protected override void CreateInterruptChild()
         {
         }
@@ -38,6 +46,20 @@ namespace PluginBehaviac.Nodes
             get
             {
                 return "SelectorLoop";
+            }
+        }
+
+        protected bool _resetChildren = false;
+        [DesignerBoolean("ResetChildren", "ResetChildrenDesc", "SelectorLoop", DesignerProperty.DisplayMode.NoDisplay, 0, DesignerProperty.DesignerFlags.NoFlags)]
+        public bool ResetChildren
+        {
+            get
+            {
+                return _resetChildren;
+            }
+            set
+            {
+                _resetChildren = value;
             }
         }
 

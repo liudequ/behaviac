@@ -590,11 +590,11 @@ namespace behaviac {
             return NULL;
         }
 
-#if !BEHAVIAC_RELEASE
-        virtual bool IsArrayItem() {
+//#if !BEHAVIAC_RELEASE
+        virtual bool IsArrayItem() const {
             return false;
         }
-#endif
+//#endif
     };
 
     template<typename T, bool bTypeIsVector>
@@ -700,8 +700,8 @@ namespace behaviac {
         }
 
         virtual bool Compare(behaviac::Agent* self, IInstanceMember* right, EOperatorType comparisonType) const {
-            const RealBaseType* leftValue = (const RealBaseType*)this->GetValue(self);
-            const RealBaseType* rightValue = (const RealBaseType*)right->GetValue(self);
+			const RealBaseType* leftValue = (const RealBaseType*)this->GetValue(self, behaviac::Meta::IsVector<RealBaseType>::Result, behaviac::GetClassTypeNumberId<RealBaseType>());
+			const RealBaseType* rightValue = (const RealBaseType*)right->GetValue(self, behaviac::Meta::IsVector<RealBaseType>::Result, behaviac::GetClassTypeNumberId<RealBaseType>());
 
             return OperationUtils::Compare(*leftValue, *rightValue, comparisonType);
         }
@@ -815,12 +815,12 @@ namespace behaviac {
             return this->_name.c_str();
         }
 
-#if !BEHAVIAC_RELEASE
+//#if !BEHAVIAC_RELEASE
     public:
-        virtual bool IsArrayItem() {
+		virtual bool IsArrayItem() const {
             return false;
         }
-#endif
+//#endif
 
     public:
         CProperty(const char* name) {
@@ -995,12 +995,12 @@ namespace behaviac {
             _gfp = gfp;
         }
 
-#if !BEHAVIAC_RELEASE
+//#if !BEHAVIAC_RELEASE
     public:
-        virtual bool IsArrayItem() {
+		virtual bool IsArrayItem() const {
             return true;
         }
-#endif
+//#endif
 
     public:
         virtual const void* GetValueElement(const behaviac::Agent* self, int index) const {
@@ -1096,12 +1096,12 @@ namespace behaviac {
             _gfp = gfp;
         }
 
-#if !BEHAVIAC_RELEASE
+//#if !BEHAVIAC_RELEASE
     public:
-        virtual bool IsArrayItem() {
+		virtual bool IsArrayItem() const {
             return true;
         }
-#endif
+//#endif
 
     public:
         virtual const void* GetValueElement(const behaviac::Agent* self, int index) const {
@@ -1476,12 +1476,12 @@ namespace behaviac {
             _parentId = parentId;
         }
 
-#if !BEHAVIAC_RELEASE
+//#if !BEHAVIAC_RELEASE
     public:
-        virtual bool IsArrayItem() {
+		virtual bool IsArrayItem() const {
             return true;
         }
-#endif
+//#endif
 
     public:
         virtual bool IsCustomized() const {
@@ -1527,12 +1527,12 @@ namespace behaviac {
             _parentId = parentId;
         }
 
-#if !BEHAVIAC_RELEASE
+//#if !BEHAVIAC_RELEASE
     public:
-        virtual bool IsArrayItem() {
+		virtual bool IsArrayItem() const {
             return true;
         }
-#endif
+//#endif
 
     public:
         virtual bool IsCustomized() const {
@@ -1702,6 +1702,10 @@ namespace behaviac {
             return NULL;
         }
 
+		virtual bool IsMethod() const {
+			return true;
+		}
+
         virtual void load(const char* instance, behaviac::vector<behaviac::string>& paramStrs) {
 			BEHAVIAC_UNUSED_VAR(instance);
 			BEHAVIAC_UNUSED_VAR(paramStrs);
@@ -1734,7 +1738,10 @@ namespace behaviac {
         }
 
         virtual IValue* GetIValueFrom(behaviac::Agent* self, IInstanceMember* firstParam) {
-			BEHAVIAC_UNUSED_VAR(firstParam);
+			BEHAVIAC_ASSERT(firstParam->IsMethod());
+			Agent* agent = Agent::GetParentAgent(self, this->_instance);
+			firstParam->run(agent);
+
 			return GetIValue(self);
         }
 

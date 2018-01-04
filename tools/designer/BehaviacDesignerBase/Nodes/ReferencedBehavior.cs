@@ -272,7 +272,7 @@ namespace Behaviac.Design.Nodes
                         string rootBTAgent = rootB.AgentType.ToString();
 
                         //the agent type specified at root bt should be derived from the agent type at child bt
-                        if (!Plugin.IsAgentDerived(rootBTAgent, childBTAgent))
+                        if (!Plugin.IsAgentDerived(rootBTAgent, childBTAgent) && !Plugin.IsAgentDerived(childBTAgent, rootBTAgent))
                         {
                             result.Add(new Node.ErrorCheck(this, ErrorCheckLevel.Error, Resources.AgentTypeError));
                         }
@@ -347,7 +347,7 @@ namespace Behaviac.Design.Nodes
         {
             get
             {
-                return "http://www.behaviac.com/language/zh/subtree/";
+                return "http://www.behaviac.com/subtree/";
             }
         }
 

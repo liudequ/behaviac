@@ -179,13 +179,6 @@ namespace Behaviac.Design
             }
         }
 
-        private System.IO.FileSystemWatcher m_Watcher = new FileSystemWatcher();
-
-        public void EnableFileWatcher(bool bEnable)
-        {
-            m_Watcher.EnableRaisingEvents = bEnable;
-        }
-
         private void MainWindow_Shown(object sender, EventArgs e)
         {
             this.WindowState = Settings.Default.MainWindowState;
@@ -694,15 +687,7 @@ namespace Behaviac.Design
                     behaviorTreeList.BehaviorFolder = workspace.SourceFolder;
                     Behavior.BehaviorPath = behaviorTreeList.BehaviorFolder;
 
-                    m_Watcher.Path = behaviorTreeList.BehaviorFolder;
-                    m_Watcher.Filter = "*.xml";
-                    m_Watcher.IncludeSubdirectories = true;
-                    m_Watcher.NotifyFilter = NotifyFilters.LastWrite;
-                    //m_Watcher.SynchronizingObject = behaviorTreeList;
-
-                    m_Watcher.Changed -= OnChanged;
-                    m_Watcher.Changed += OnChanged;
-                    m_Watcher.EnableRaisingEvents = true;
+                    Workspace.InitFileWatcher(behaviorTreeList.BehaviorFolder, this.OnChanged);
 
                     postSetWorkspace();
 
@@ -756,37 +741,29 @@ namespace Behaviac.Design
         }
 
         delegate BehaviorNode ForceLoadBehavior_t(BehaviorNode behavior, string behaviorFilename);
-        static int ms_onchanged_flag = 0;
 
         private void OnChanged(object sender, FileSystemEventArgs e)
         {
-            //don't know why the same file is notified twice
-            if ((ms_onchanged_flag & 0x01) == 0)
+            string behaviorFilename = e.FullPath;
+
+            BehaviorNode behavior = BehaviorManager.Instance.GetBehavior(behaviorFilename);
+
+            if (behavior != null)
             {
-                string behaviorFilename = e.FullPath;
+                BehaviorTreeList behaviorTreeList = BehaviorManager.Instance as BehaviorTreeList;
 
-                BehaviorNode behavior = BehaviorManager.Instance.GetBehavior(behaviorFilename);
-
-                if (behavior != null)
+                if (behaviorTreeList != null)
                 {
-                    BehaviorTreeList behaviorTreeList = BehaviorManager.Instance as BehaviorTreeList;
+                    ForceLoadBehavior_t d = new ForceLoadBehavior_t(ForceLoadBehavior);
+                    object[] parms = new object[] { behavior, behaviorFilename };
+                    behaviorTreeList.Invoke(d, parms);
 
-                    if (behaviorTreeList != null)
-                    {
-                        ForceLoadBehavior_t d = new ForceLoadBehavior_t(ForceLoadBehavior);
-                        object[] parms = new object[] { behavior, behaviorFilename };
-                        behaviorTreeList.Invoke(d, parms);
-
-                        Thread.Sleep(100);
-                    }
+                    Thread.Sleep(100);
                 }
-
-                ms_onchanged_flag++;
-
             }
-            else
+            else if (behaviorFilename.EndsWith(".meta.xml") || behaviorFilename.EndsWith(".bb.xml"))
             {
-                ms_onchanged_flag = 0;
+                this.Invoke(new System.EventHandler(reloadWorkspaceMenuItem_Click));
             }
         }
 
@@ -1184,7 +1161,7 @@ namespace Behaviac.Design
                     dock.BehaviorTreeView.RootNode != null &&
                     dock.BehaviorTreeView.RootNode.AgentType != null)
                 {
-                    dock.BehaviorTreeView.RootNode.AgentType.AddPars(((Behavior)dock.BehaviorTreeView.RootNode).LocalVars);
+                    dock.BehaviorTreeView.RootNode.AgentType.ResetPars(((Behavior)dock.BehaviorTreeView.RootNode).LocalVars);
                 }
 
                 if (Plugin.UpdateMetaStoreHandler != null)
@@ -1564,7 +1541,7 @@ namespace Behaviac.Design
 
                             if (behaviorTreeView != null && behaviorTreeView.RootNode != null && behaviorTreeView.RootNode.AgentType != null)
                             {
-                                behaviorTreeView.RootNode.AgentType.AddPars(((Behavior)behaviorTreeView.RootNode).LocalVars);
+                                behaviorTreeView.RootNode.AgentType.ResetPars(((Behavior)behaviorTreeView.RootNode).LocalVars);
                             }
                         }
                     }
@@ -1851,6 +1828,10 @@ namespace Behaviac.Design
         private void editWorkspaceToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Workspace ws = Workspace.Current;
+            if (ws == null)
+            {
+                return;
+            }
 
             using(EditWorkspaceDialog dialog = new EditWorkspaceDialog())
             {
@@ -2145,12 +2126,12 @@ namespace Behaviac.Design
 
         public void OpenOverViewURL()
         {
-            OpenURL("http://www.behaviac.com/language/zh/3-6-overview/");
+            OpenURL("http://www.behaviac.com/3-6-overview/");
         }
 
         public void OpenTutorialsURL()
         {
-            OpenURL("http://www.behaviac.com/language/zh/category/%E6%96%87%E6%A1%A3/%E6%95%99%E7%A8%8B/");
+            OpenURL("http://www.behaviac.com/category/%E6%96%87%E6%A1%A3/%E6%95%99%E7%A8%8B/");
         }
 
         private void overviewMenuItem_Click(object sender, EventArgs e)
@@ -2180,7 +2161,7 @@ namespace Behaviac.Design
             try
             {
                 //behaviorTreeList.CheckVersionSync();
-                OpenURL("http://www.behaviac.com/language/zh/behaviac%E7%89%88%E6%9C%AC%E4%B8%8B%E8%BD%BD/");
+                OpenURL("http://www.behaviac.com/behaviac%E7%89%88%E6%9C%AC%E4%B8%8B%E8%BD%BD/");
 
                 Utilities.ReportOpenDoc();
             }

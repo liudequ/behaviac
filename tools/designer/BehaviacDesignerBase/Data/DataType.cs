@@ -391,7 +391,19 @@ namespace Behaviac.Design
             {
                 get
                 {
-                    return _nativeType;
+                    string nativeType = _nativeType;
+
+                    if (string.IsNullOrEmpty(nativeType))
+                    {
+                        nativeType = Plugin.GetNativeTypeName(this.Type);
+                    }
+
+                    if (!nativeType.Contains("*") && !nativeType.Contains("&") && Plugin.IsRefType(this.Type))
+                    {
+                        nativeType += "*";
+                    }
+
+                    return nativeType;
                 }
                 set
                 {
@@ -906,6 +918,11 @@ namespace Behaviac.Design
                 }
 
                 return _owner;
+            }
+
+            set
+            {
+                _classname = value;
             }
         }
 
@@ -1927,6 +1944,11 @@ namespace Behaviac.Design
 
                 return _owner;
             }
+
+            set
+            {
+                _classname = value;
+            }
         }
 
         protected string _nativeType;
@@ -1941,10 +1963,10 @@ namespace Behaviac.Design
                     nativeType = Plugin.GetNativeTypeName(this.Type);
                 }
 
-                //if (!nativeType.EndsWith("*") && Plugin.IsRefType(this.Type))
-                //{
-                //    nativeType += "*";
-                //}
+                if (!nativeType.Contains("*") && Plugin.IsRefType(this.Type))
+                {
+                    nativeType += "*";
+                }
 
                 return nativeType;
             }
@@ -1959,17 +1981,20 @@ namespace Behaviac.Design
         {
             get
             {
-                if (this.IsArrayElement && !string.IsNullOrEmpty(this.NativeType))
-                {
-                    int startIndex = this.NativeType.IndexOf("<");
+                string nativeType = this.NativeType;
 
-                    if (startIndex > 0)
+                if (this.IsArrayElement && !string.IsNullOrEmpty(nativeType))
+                {
+                    int startIndex = nativeType.IndexOf("<");
+                    int endIndex = nativeType.IndexOf(">");
+
+                    if (startIndex > 0 && endIndex > 0)
                     {
-                        return this.NativeType.Substring(startIndex + 1, this.NativeType.Length - startIndex - 2);
+                        return nativeType.Substring(startIndex + 1, endIndex - startIndex - 1);
                     }
                 }
 
-                return this.NativeType;
+                return nativeType;
             }
         }
 

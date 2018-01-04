@@ -243,7 +243,7 @@ namespace behaviac
         }
 
         private BehaviorTreeTask m_currentBT;
-        public BehaviorTreeTask CurrentBT
+        public BehaviorTreeTask CurrentTreeTask
         {
             get
             {
@@ -253,7 +253,7 @@ namespace behaviac
             private set
             {
                 m_currentBT = value;
-                m_excutingTreeTask = m_currentBT;
+                //m_excutingTreeTask = m_currentBT;
             }
         }
 
@@ -1365,7 +1365,6 @@ namespace behaviac
                     }
                 }
             }
-
 #endif
         }
 
@@ -1375,9 +1374,11 @@ namespace behaviac
             if (Config.IsLoggingOrSocketing && this.m_currentBT != null)
             {
                 List<BehaviorTask> runningNodes = this.m_currentBT.GetRunningNodes(false);
+                var e = runningNodes.GetEnumerator();
 
-                foreach (BehaviorTask behaviorTask in runningNodes)
+                while (e.MoveNext())
                 {
+                    BehaviorTask behaviorTask = e.Current;
                     string btStr = BehaviorTask.GetTickInfo(this, behaviorTask, "enter");
 
                     //empty btStr is for internal BehaviorTreeTask
@@ -1544,7 +1545,7 @@ namespace behaviac
                         this.BehaviorTreeTasks.Add(pTask);
                     }
 
-                    this.CurrentBT = pTask;
+                    this.CurrentTreeTask = pTask;
 
                     //string pThisTree = this.m_currentBT.GetName();
                     //this.LogJumpTree(pThisTree);
@@ -1569,7 +1570,7 @@ namespace behaviac
                         //get the last one
                         BehaviorTreeStackItem_t lastOne = this.BTStack[this.BTStack.Count - 1];
 
-                        this.CurrentBT = lastOne.bt;
+                        this.CurrentTreeTask = lastOne.bt;
                         this.BTStack.RemoveAt(this.BTStack.Count - 1);
 
                         bool bExecCurrent = false;
@@ -1611,6 +1612,10 @@ namespace behaviac
                         //this.CurrentBT = null;
                         break;
                     }
+                }
+
+                if (s != EBTStatus.BT_RUNNING) {
+                    this.ExcutingTreeTask = null;
                 }
 
                 return s;
@@ -1711,7 +1716,7 @@ namespace behaviac
                 BehaviorTree bt = btNode as BehaviorTree;
                 this.btunload_pars(bt);
 
-                this.CurrentBT = null;
+                this.CurrentTreeTask = null;
             }
 
             //remove it from stack
@@ -1798,7 +1803,7 @@ namespace behaviac
             this.BehaviorTreeTasks.Clear();
 
             //just clear the name vector, don't unload it from cache
-            this.CurrentBT = null;
+            this.CurrentTreeTask = null;
             this.BTStack.Clear();
 
             this.Variables.Unload();
@@ -1806,7 +1811,7 @@ namespace behaviac
 
         public void btreloadall()
         {
-            this.CurrentBT = null;
+            this.CurrentTreeTask = null;
             this.BTStack.Clear();
 
             if (this.m_behaviorTreeTasks != null)

@@ -92,9 +92,11 @@
     <Compile Include="NodeExporters\AttachmentExporter.cs" />
     <Compile Include="Exporters\ExporterCpp.cs" />
     <Compile Include="NodeExporters\Cpp\Actions\ComputeCppExporter.cs" />
+    <Compile Include="NodeExporters\Cpp\Actions\EndCppExporter.cs" />
     <Compile Include="NodeExporters\Cpp\Attachments\AttachActionCppExporter.cs" />
     <Compile Include="NodeExporters\Cpp\Attachments\EffectorCppExporter.cs" />
     <Compile Include="NodeExporters\Cpp\Attachments\PreconditionCppExporter.cs" />
+    <Compile Include="NodeExporters\Cpp\Composites\SelectorLoopCppExporter.cs" />
     <Compile Include="NodeExporters\Cpp\Decorators\DecoratorIteratorCppExporter.cs" />
     <Compile Include="NodeExporters\Cpp\Decorators\DecoratorLoopCppExporter.cs" />
     <Compile Include="NodeExporters\Cpp\FSM\AlwaysTransitionCppExporter.cs" />
@@ -107,6 +109,7 @@
     <Compile Include="NodeExporters\Cs\Actions\ActionCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Actions\AssignmentCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Actions\ComputeCsExporter.cs" />
+    <Compile Include="NodeExporters\Cs\Actions\EndCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Actions\WaitCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Actions\WaitFramesCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\AttachmentCsExporter.cs" />
@@ -114,6 +117,7 @@
     <Compile Include="NodeExporters\Cs\Attachments\PreconditionCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Attachments\EffectorCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Attachments\EventCsExporter.cs" />
+    <Compile Include="NodeExporters\Cs\Composites\SelectorLoopCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Composites\ParallelCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Composites\QueryCsExporter.cs" />
     <Compile Include="NodeExporters\Cs\Composites\ReferencedBehaviorCsExporter.cs" />
@@ -165,6 +169,7 @@
     <Compile Include="Nodes\Actions\Noop.cs" />
     <Compile Include="Nodes\Actions\Action.cs" />
     <Compile Include="Nodes\Actions\Assignment.cs" />
+    <Compile Include="Nodes\Actions\End.cs" />
     <Compile Include="Nodes\Actions\Wait.cs" />
     <Compile Include="Nodes\Actions\WaitforSignal.cs" />
     <Compile Include="Nodes\Actions\WaitFrames.cs" />
@@ -216,6 +221,8 @@
     <Compile Include="Nodes\HTN\Method.cs" />
     <Compile Include="Nodes\HTN\Task.cs" />
     <Compile Include="NodeUI\AlwaysTransitionUIPolicy.cs" />
+    <Compile Include="NodeUI\EndUIPolicy.cs" />
+    <Compile Include="NodeUI\ConditionUIPolicy.cs" />
     <Compile Include="NodeUI\ComputeUIPolicy.cs" />
     <Compile Include="NodeUI\EffectorUIPolicy.cs" />
     <Compile Include="NodeUI\AssignmentUIPolicy.cs" />

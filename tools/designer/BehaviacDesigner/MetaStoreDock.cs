@@ -157,7 +157,7 @@ namespace Behaviac.Design
 
         private void Clear()
         {
-            _lastSelectedType = "";
+            //_lastSelectedType = "";
         }
 
         private void apply(bool query, int typeSelectedIndex, int memberSelectedIndex, bool resetSelectedIndex)
@@ -585,7 +585,10 @@ namespace Behaviac.Design
                 // agent
                 if (index < Plugin.AgentTypes.Count)
                 {
-                    this.addMemberButton.Enabled = true;
+                    if (index > 0)
+                    {
+                        this.addMemberButton.Enabled = true;
+                    }
 
                     AgentType agentType = Plugin.AgentTypes[index];
 
@@ -996,11 +999,14 @@ namespace Behaviac.Design
                     {
                         PropertyDef prop = getPropertyByIndex(memberIndex);
 
-                        //don't allow to remove automatically added "_$local_task_param_$_0"
-                        bool bEnabled = (prop != null && prop.CanBeRemoved());
-                        this.removeMemberButton.Enabled = bEnabled;
-                        this.upMemberButton.Enabled = bEnabled;
-                        this.downMemberButton.Enabled = bEnabled;
+                        if (index > 0)
+                        {
+                            //don't allow to remove automatically added "_$local_task_param_$_0"
+                            bool bEnabled = (prop != null && prop.CanBeRemoved());
+                            this.removeMemberButton.Enabled = bEnabled;
+                            this.upMemberButton.Enabled = bEnabled;
+                            this.downMemberButton.Enabled = bEnabled;
+                        }
 
                         if (prop != null)
                         {
@@ -1023,25 +1029,26 @@ namespace Behaviac.Design
                                 this.metaPropertyPanel.Show();
                             }
                         }
-
                     }
                     else if (this.memberTypeComboBox.SelectedIndex == (int)MemberType.Method ||
                              this.memberTypeComboBox.SelectedIndex == (int)MemberType.Task)
                     {
                         MethodDef method = getMethodByIndex(memberIndex);
 
-                        bool bEnabled = (method != null && method.CanBeRemoved());
-                        this.removeMemberButton.Enabled = bEnabled;
-                        this.upMemberButton.Enabled = bEnabled;
-                        this.downMemberButton.Enabled = bEnabled;
+                        if (index > 0)
+                        {
+                            bool bEnabled = (method != null && method.CanBeRemoved());
+                            this.removeMemberButton.Enabled = bEnabled;
+                            this.upMemberButton.Enabled = bEnabled;
+                            this.downMemberButton.Enabled = bEnabled;
+                        }
 
                         if (method != null && this.metaMethodPanel != null)
                         {
-                            this.metaMethodPanel.Initialize(!method.IsInherited, agent, method, (MemberType)this.memberTypeComboBox.SelectedIndex);
+                            this.metaMethodPanel.Initialize(index > 0 && !method.IsInherited, agent, method, (MemberType)this.memberTypeComboBox.SelectedIndex);
                             this.metaMethodPanel.Show();
                         }
                     }
-
                 }
                 else
                 {
@@ -1307,7 +1314,7 @@ namespace Behaviac.Design
 
                         this.typeListBox.Items[typeSelectedIndex] = preStr + enumType.Fullname;
 
-                        _lastSelectedType = enumType.Name;
+                        _lastSelectedType = enumType.Fullname;
                     }
                 }
                 else if (metaType == MetaTypePanel.MetaTypes.Struct)
@@ -1321,7 +1328,7 @@ namespace Behaviac.Design
 
                         this.typeListBox.Items[typeSelectedIndex] = preStr + structType.Fullname;
 
-                        _lastSelectedType = structType.Name;
+                        _lastSelectedType = structType.Fullname;
                     }
                 }
 
@@ -1343,7 +1350,7 @@ namespace Behaviac.Design
                 {
                     AgentType agent = Plugin.AgentTypes[index];
 
-                    if (agent != null && agent.IsCustomized)
+                    if (agent != null)
                     {
                         Workspace.Current.IsBlackboardDirty = true;
 
@@ -1351,7 +1358,6 @@ namespace Behaviac.Design
 
                         this.typeListBox.Items.RemoveAt(index);
                     }
-
                 }
                 else
                 {
@@ -1360,7 +1366,6 @@ namespace Behaviac.Design
                         TypeManager.Instance.Enums.RemoveAt(index - Plugin.AgentTypes.Count);
 
                         this.typeListBox.Items.RemoveAt(index);
-
                     }
                     else
                     {
@@ -1395,7 +1400,6 @@ namespace Behaviac.Design
                 if (item.Property != null && item.Property.IsPar)
                 {
                     index++;
-
                 }
                 else
                 {
@@ -1506,7 +1510,7 @@ namespace Behaviac.Design
                                     this.memberListBox.Items.Add(Member_Str + enumMember.DisplayName);
                                     this.memberListBox.SelectedIndex = this.memberListBox.Items.Count - 1;
 
-                                    _lastSelectedType = enumType.Name;
+                                    _lastSelectedType = enumType.Fullname;
                                 }
                             }
                         }
@@ -1530,7 +1534,7 @@ namespace Behaviac.Design
                                     this.memberListBox.Items.Add(Member_Str + prop.DisplayName);
                                     this.memberListBox.SelectedIndex = this.memberListBox.Items.Count - 1;
 
-                                    _lastSelectedType = structType.Name;
+                                    _lastSelectedType = structType.Fullname;
                                 }
                             }
                         }
@@ -2022,6 +2026,9 @@ namespace Behaviac.Design
 
         private void removeSelectedMember()
         {
+            if (!this.removeMemberButton.Enabled)
+                return;
+
             int index = this.typeListBox.SelectedIndex;
             int memberIndex = this.memberListBox.SelectedIndex;
 

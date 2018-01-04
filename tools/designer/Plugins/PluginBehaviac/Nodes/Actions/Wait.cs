@@ -49,21 +49,14 @@ namespace PluginBehaviac.Nodes
         {
             _exportName = "Wait";
 
-            if (Workspace.Current.UseIntValue)
-            {
-                _time = new RightValueDef(new VariableDef(1000));
-            }
-            else
-            {
-                _time = new RightValueDef(new VariableDef(1000.0f));
-            }
+            initTime();
         }
 
         public override string DocLink
         {
             get
             {
-                return "http://www.behaviac.com/language/zh/wait/";
+                return "http://www.behaviac.com/wait/";
             }
         }
 
@@ -75,12 +68,29 @@ namespace PluginBehaviac.Nodes
             }
         }
 
+        private void initTime()
+        {
+            if (Workspace.Current.UseIntValue)
+            {
+                _time = new RightValueDef(new VariableDef(1000));
+            }
+            else
+            {
+                _time = new RightValueDef(new VariableDef(1000.0f));
+            }
+        }
+
         protected RightValueDef _time = new RightValueDef(new VariableDef(1000.0f));
         [DesignerRightValueEnum("Duration", "DurationDesc", "CategoryBasic", DesignerProperty.DisplayMode.Parameter, 1, DesignerProperty.DesignerFlags.NoFlags, DesignerPropertyEnum.AllowStyles.ConstAttributesMethod, MethodType.Getter, "", "", ValueTypes.WaitType)]
         public RightValueDef Time
         {
             get
             {
+                if (_time == null)
+                {
+                    initTime();
+                }
+
                 return _time;
             }
             set
